@@ -10,7 +10,8 @@
     "typeRoots": ["./node_modules/@types"],
     "outDir": "dist",
     "rootDir": "src",
-    "useUnknownInCatchVariables": false
+    "useUnknownInCatchVariables": false,
+    "strictPropertyInitialization": false,
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules"]
