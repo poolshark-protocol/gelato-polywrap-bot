@@ -17,10 +17,28 @@ const groupSwapAddress = "";
 
 export function checker(input: Input_checker): Gelato_CheckerResult {
   // query subgraph to get a list of all the groups and group data
-  const groups = [];
+  // TODO: How is this type handled? Is it like a JSON object and indexable as such
+  const groups = GraphNode_Query.querySubgraph({
+    subgraphAuthor: "alphak3y",
+    subgraphName: "PredaDex",
+    // I think this will sort low-high, so we should probably iterate backwards and break when we have groupGwei == 0
+    query: `{
+      groupOrders(orderBy: groupGwei, orderDirection: desc) {
+        id
+        groupAmount
+        groupGwei
+        fromToken
+      }
+    }`,
+  });
+
+  Logger_Query.log({
+    level: Logger_Logger_LogLevel.INFO,
+    message: `groups : ${groups}`,
+  });
 
   // get current gas rate
-  const currentGasRate = 0;
+  const currentGasRate = input.currentGas;
 
   // it is approx 100k gas for the cheapest dex
   const minGasUnitsForSwap = 100_000;
@@ -34,6 +52,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
 
 
   for (let groupId = 0; groupId < groups.length; groupId++) {
+    // TODO: We probably want currentGroup to be a JSON type object so we can index it as such
     const currentGroup = groups[groupId];
     if (currentGroup.fromAmount == 0
      || currentGroup.totalGas == 0) continue;
@@ -66,12 +85,12 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
     method: "function increaseCount(uint256)",
     args: ["100"],
   });
+*/
 
   const resolverData: Gelato_CheckerResult = {
-    canExec: canExec,
-    execPayload: execPayload,
+    canExec: false,
+    execPayload: "",
   };
 
   return resolverData;
-*/
 }

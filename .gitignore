@@ -1,2 +1,4 @@
 build/
 node_modules/
+.w3/
+src/query/w3/imported
