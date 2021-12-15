@@ -1,4 +1,5 @@
 build/
 node_modules/
 .w3/
-src/query/w3/imported
+src/query/w3
+.env
