@@ -13,8 +13,7 @@ import {
 } from "./w3";
 import { JSON, BigInt } from "@web3api/wasm-as";
 
-const predaDexAddress = "0x5101feD546FacccD309A77Ad755170f8fBf1E81D";
-// TODO: Update groupSwapAddress
+const predaDexAddress = "0xaFC73be4B159d4a87A1F104c345fF7eb2B3967f1";
 const groupSwapAddress = "0x5101feD546FacccD309A77Ad755170f8fBf1E81D";
 const ZERO = BigInt.fromString("0");
 const parts = "1";
@@ -35,7 +34,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
 
   // Get minimum gas required according to gasPrice passed by Gelato
   const minGasUnitsForSwap = BigInt.fromString("100000"); // TODO: Validate this 100k number
-  const minWei = minGasUnitsForSwap.mul(gasPrice);
+  const minWei = BigInt.fromString("100000");//minGasUnitsForSwap.mul(gasPrice);
   log(`Min wei: ${minWei}`);
 
   // Get orders from subgraph
@@ -94,14 +93,20 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
     )
       continue;
 
-    log(`id: ${idJSONStr}`);
-    log(`groupWei: ${groupWeiJSONStr}`);
+    // log(`id: ${idJSONStr}`);
+    // log(`groupWei: ${groupWeiJSONStr}`);
 
-    // This is failing probably because the contract is not deployed on ETH mainnet?
+    // log(`\n\n`);
+    // log(`fromToken: ${fromTokenJSONStr}`);
+    // log(`destToken: ${destTokenJSONStr}`);
+    // log(`groupAmnt: ${groupAmountJSONStr}`);
+    // log(`parts: ${parts}`);
+    // log(`flags: ${flags}`);
+    // log(`destTokenEthPriceTimesGasPrice: ${destTokenEthPriceTimesGasPrice}`);
+
     const res = Ethereum_Query.callContractView({
       address: predaDexAddress,
-      method:
-        "function quoteAndDistribute(address fromToken, address destToken, uint256 amount, uint256 parts, uint256 flags, uint256 destTokenEthPriceTimesGasPrice) view returns(uint256 returnAmount, uint256[] memory distribution, uint256 gas)",
+      method: "function quoteAndDistribute(address, address, uint256, uint256, uint256, uint256) external view returns (uint256, uint256[] memory, uint256)",
       args: [
         fromTokenJSONStr.valueOf(),
         destTokenJSONStr.valueOf(),
@@ -113,6 +118,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
       connection: ethConnection,
     });
 
+    // TODO: How to decode res string into args that we can use
     log(`RES: ${res}`);
 
     // It looks like res is a string type
@@ -132,19 +138,19 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
   }
 
   // Make execPayload
-  const execPayload = Ethereum_Query.encodeFunction({
-    method: "function executeGroups(address[], address[], uint256[], uint256[])",
-    args: [
-      executeDataFromTokens.stringify.toString(),
-      executeDataDestTokens.stringify.toString(),
-      executeDataAmount.stringify.toString(),
-      executeDataQuoteAmount.stringify.toString()
-    ],
-  });
+  // const execPayload = Ethereum_Query.encodeFunction({
+  //   method: "function executeGroups(address[], address[], uint256[], uint256[])",
+  //   args: [
+  //     executeDataFromTokens.stringify.toString(),
+  //     executeDataDestTokens.stringify.toString(),
+  //     executeDataAmount.stringify.toString(),
+  //     executeDataQuoteAmount.stringify.toString()
+  //   ],
+  // });
 
   const resolverData: Gelato_CheckerResult = {
     canExec: false,
-    execPayload: execPayload,
+    execPayload: "execPayload",
   };
 
   return resolverData;
