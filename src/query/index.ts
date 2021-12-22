@@ -34,7 +34,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
 
   // Get minimum gas required according to gasPrice passed by Gelato
   const minGasUnitsForSwap = BigInt.fromString("100000"); // TODO: Validate this 100k number
-  const minWei = BigInt.fromString("100000");//minGasUnitsForSwap.mul(gasPrice);
+  const minWei = minGasUnitsForSwap.mul(gasPrice);
   log(`Min wei: ${minWei}`);
 
   // Get orders from subgraph
@@ -69,12 +69,14 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
   if (ordersArrayJSON == null) throw Error("Orders Array null");
 
   const ordersArray = ordersArrayJSON.valueOf();
-  // log(`ordersArray ${ordersArray.toString()}`);
 
   let executeDataFromTokens = new JSON.Arr();
   let executeDataDestTokens = new JSON.Arr();
   let executeDataAmount = new JSON.Arr();
   let executeDataQuoteAmount = new JSON.Arr();
+  let executeDataDistribution = new JSON.Arr();
+
+  let shouldExecute = false;
 
   for (let i = 0; i < ordersArray.length; i++) {
     const ordersObj = <JSON.Obj>JSON.parse(ordersArray[i].stringify());
@@ -118,39 +120,56 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
       connection: ethConnection,
     });
 
-    // TODO: How to decode res string into args that we can use
-    log(`RES: ${res}`);
+    const returns = res.split(',');
 
-    // It looks like res is a string type
-    // TODO: How do we convert the res string to the response args?
+    const quoteAmount = new JSON.Str(returns[0]);
+    returns.splice(0, 1);
+
+    const estimatedGasUnits = returns[returns.length - 1];
+    returns.splice(returns.length - 1, 1);
+
+    const distribution = new JSON.Str(returns.join());
+
+    log(`quoteAmount: ${quoteAmount}`);
+    log(`estimatedGasUnits: ${estimatedGasUnits}`);
+    log(`distribution: ${distribution}`);
 
     // process res
-    const weiRequired = BigInt.fromString(res).mul(gasPrice); // res.gas
+    const weiRequired = BigInt.fromString(estimatedGasUnits).mul(gasPrice);
 
-    const quoteAmount = new JSON.Str(res); // res.returnAmount
-
-    if (weiRequired <= BigInt.fromString(groupWeiJSONStr.toString())) {
+    if (BigInt.fromString(groupWeiJSONStr.toString()).gte(weiRequired) && BigInt.fromString(quoteAmount.toString()).gt(ZERO)) {
       executeDataFromTokens.push(fromTokenJSONStr);
       executeDataDestTokens.push(destTokenJSONStr);
       executeDataAmount.push(groupAmountJSONStr);
       executeDataQuoteAmount.push(quoteAmount);
+      executeDataDistribution.push(distribution);
+
+      shouldExecute = true;
     }
   }
 
+  log(`executeDataFromTokens: ${executeDataFromTokens}`);
+  log(`executeDataDestTokens: ${executeDataDestTokens}`);
+  log(`executeDataAmount: ${executeDataAmount}`);
+  log(`executeDataQuoteAmount: ${executeDataQuoteAmount}`);
+  log(`executeDataDistribution: ${executeDataDistribution}`);
+
   // Make execPayload
-  // const execPayload = Ethereum_Query.encodeFunction({
-  //   method: "function executeGroups(address[], address[], uint256[], uint256[])",
-  //   args: [
-  //     executeDataFromTokens.stringify.toString(),
-  //     executeDataDestTokens.stringify.toString(),
-  //     executeDataAmount.stringify.toString(),
-  //     executeDataQuoteAmount.stringify.toString()
-  //   ],
-  // });
+  // TODO: Fix execPayload
+  const execPayload = Ethereum_Query.encodeFunction({
+    method: "function executeGroups(address[], address[], uint256[], uint256[], uint256[][])",
+    args: [
+      executeDataFromTokens.stringify.toString(),
+      executeDataDestTokens.stringify.toString(),
+      executeDataAmount.stringify.toString(),
+      executeDataQuoteAmount.stringify.toString(),
+      executeDataDistribution.stringify.toString()
+    ],
+  });
 
   const resolverData: Gelato_CheckerResult = {
-    canExec: false,
-    execPayload: "execPayload",
+    canExec: shouldExecute,
+    execPayload: execPayload,
   };
 
   return resolverData;
