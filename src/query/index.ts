@@ -75,6 +75,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
   let executeDataAmount = new JSON.Arr();
   let executeDataQuoteAmount = new JSON.Arr();
   let executeDataDistribution = new JSON.Arr();
+  let executeDataSlippage = new JSON.Arr();
 
   let shouldExecute = false;
 
@@ -143,6 +144,7 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
       executeDataAmount.push(groupAmountJSONStr);
       executeDataQuoteAmount.push(quoteAmount);
       executeDataDistribution.push(distribution);
+      executeDataSlippage.push(new JSON.Str("5")); // temp hard-coded 5% slippage for testing
 
       shouldExecute = true;
     }
@@ -153,17 +155,19 @@ export function checker(input: Input_checker): Gelato_CheckerResult {
   log(`executeDataAmount: ${executeDataAmount}`);
   log(`executeDataQuoteAmount: ${executeDataQuoteAmount}`);
   log(`executeDataDistribution: ${executeDataDistribution}`);
+  log(`executeDataSlippage: ${executeDataSlippage}`);
 
   // Make execPayload
   // TODO: Fix execPayload
   const execPayload = Ethereum_Query.encodeFunction({
-    method: "function executeGroups(address[], address[], uint256[], uint256[], uint256[][])",
+    method: "function executeGroups(address[], address[], uint256[], uint256[], uint256[][], uint256[])",
     args: [
       executeDataFromTokens.stringify.toString(),
       executeDataDestTokens.stringify.toString(),
       executeDataAmount.stringify.toString(),
       executeDataQuoteAmount.stringify.toString(),
-      executeDataDistribution.stringify.toString()
+      executeDataDistribution.stringify.toString(),
+      executeDataSlippage.stringify.toString()
     ],
   });
 
